@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config({ path: './.env' });
 
-import { Bot, Context, type NextFunction, session, SessionFlavor } from "grammy";
+import { Bot, Context, type NextFunction, session, SessionFlavor, InlineKeyboard } from "grammy";
 import { Menu } from "@grammyjs/menu";
 import { type Conversation, type ConversationFlavor, conversations, createConversation } from "@grammyjs/conversations";
 import axios from "axios";
@@ -21,29 +21,46 @@ type MyConversation = Conversation<MyContext>;
 // Create an instance of the `Bot` class using custom context and pass your authentication token to it
 const bot = new Bot<MyContext>(process.env.BOT_TOKEN as string); 
 
-// -------------------------------------- MENUS --------------------------------------
-// Create main menu
+// -------------------------------------- INTERFACES --------------------------------------
+interface User {
+    name: string;
+    age: number;
+};
+
+// -------------------------------------- MESSAGE MARKUPS --------------------------------------
+// Create a main menu
 const mainMenu = new Menu("main-menu")
     .submenu("Manage Projects", "project-menu").row()
     .submenu("Manage Account", "account-menu").row()
 
-// Create project menu
+// Create a project menu
 const projectMenu = new Menu("project-menu")
     .text("New Project", (ctx) => ctx.reply("")).row()
-    .text("View Projects", (ctx) => ctx.reply("")).row()
     .back("Go Back");
 
-// Create account menu
+// Create an account menu
 const accountMenu = new Menu("account-menu")
     .text("Edit Profile", (ctx) => ctx.reply("")).row()
     .text("View Profile", (ctx) => ctx.reply("")).row()
     .text("Delete Account", (ctx) => ctx.reply("")).row()
     .back("Go Back");
 
-// Register project menu at main menu.
+// Create a register button
+const registerBtn = new InlineKeyboard()
+    .text("Register", "registerUser");
+
+// Register the project menu at main menu.
 mainMenu.register(projectMenu);
-// Register account menu at main menu.
+// Register the account menu at main menu.
 mainMenu.register(accountMenu);
+
+// -------------------------------------- MIDDLEWARES --------------------------------------
+bot.use(getUser)
+bot.use(mainMenu);
+bot.use(session({ initial: () => ({}) }));
+bot.use(conversations());
+bot.use(createConversation(registerUser));
+ 
 
 // -------------------------------------- USER ACCESS --------------------------------------
 // Check if user is registered in database
@@ -59,22 +76,26 @@ async function getUser(ctx : MyContext, next: NextFunction) : Promise<void> {
             console.log(err.message);
             console.log(err.response.headers);
             console.log(err.response.data);
-            bot.api.sendMessage(telegramId, "You are not registered.")
+            bot.api.sendMessage(telegramId, "Please register to continue.", { reply_markup: registerBtn });
         })  
 };
 
+// Respond when users click the register button
+bot.callbackQuery("registerUser", async (ctx) => {
+    await ctx.conversation.enter("registerUser");
+});
+
 // Register new users
 async function registerUser(conversation: MyConversation, ctx: MyContext) {
-    // TODO: code the conversation
+    // Storing details of new user in an object
+    const user = {};
 
+    // Ask the users for personal details to register them
+
+    // Leave the conversation
+    return user;
 };
 
-// -------------------------------------- MIDDLEWARES --------------------------------------
-// bot.use(getUser)
-bot.use(mainMenu);
-bot.use(session({ initial: () => ({}) }));
-bot.use(conversations());
- 
 // -------------------------------------- COMMANDS --------------------------------------
 // Handle the /start command
 bot.command("start", async (ctx) => {
