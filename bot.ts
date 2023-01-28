@@ -22,7 +22,7 @@ type MyConversation = Conversation<MyContext>;
 const bot = new Bot<MyContext>(process.env.BOT_TOKEN as string); 
 
 // -------------------------------------- INTERFACES --------------------------------------
-interface User {
+interface UserInfo {
     name: string;
     age: number;
 };
@@ -55,7 +55,6 @@ mainMenu.register(projectMenu);
 mainMenu.register(accountMenu);
 
 // -------------------------------------- MIDDLEWARES --------------------------------------
-bot.use(getUser)
 bot.use(mainMenu);
 bot.use(session({ initial: () => ({}) }));
 bot.use(conversations());
@@ -88,17 +87,45 @@ bot.callbackQuery("registerUser", async (ctx) => {
 // Register new users
 async function registerUser(conversation: MyConversation, ctx: MyContext) {
     // Storing details of new user in an object
-    const user = {};
+    const user = {} as UserInfo;
+    const nameRegex = new RegExp('([a-z]+\s?)+', 'gmi');
 
     // Ask the users for personal details to register them
+    await ctx.reply("What is your full name?");
+    do {
+        ctx = await conversation.waitFor("message:text");
+        if (ctx.message) {
+            const name = ctx.message.text as string;
+            if (!nameRegex.test(name)) {
+                await ctx.reply("Please provide a valid full name.");
+            } else {
+                user.name = name;
+                break;
+            };
+        }
+    } while (true)
+
+    await ctx.reply("What is your age?");
+    do {
+        ctx = await conversation.waitFor("message:text");
+        if (ctx.message) {
+            const age = parseInt(ctx.message.text as string);
+            if (age < 16 || age > 90) {
+                await ctx.reply("Please provide a valid age.");
+            } else {
+                user.age = age;
+                break;
+            };
+        }
+    } while (true)
 
     // Leave the conversation
     return user;
 };
 
 // -------------------------------------- COMMANDS --------------------------------------
-// Handle the /start command
-bot.command("start", async (ctx) => {
+// Handle the /start command with getUser middleware to check if user exists
+bot.command("start", getUser, async (ctx) => {
     // Menu text
     const startMsg = "Welcome to SG Developers!\n";
 
