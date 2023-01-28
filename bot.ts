@@ -25,6 +25,20 @@ const bot = new Bot<MyContext>(process.env.BOT_TOKEN as string);
 interface UserInfo {
     name: string;
     age: number;
+    education: string;
+    occupation: string;
+    description: string;
+    contacts: {
+        private: {
+            phone: number;
+            email: string;
+        };
+        public: {
+            linkedin: string;
+            github: string;
+        };
+    };
+    telegramId: number;
 };
 
 // -------------------------------------- MESSAGE MARKUPS --------------------------------------
@@ -47,7 +61,17 @@ const accountMenu = new Menu("account-menu")
 
 // Create a register button
 const registerBtn = new InlineKeyboard()
-    .text("Register", "registerUser");
+    .text("Register", "getNewUser");
+
+// Create education select dropdown
+const educationSelect = new InlineKeyboard()
+    .text("O Levels").row()
+    .text("A Levels").row()
+    .text("Polytechnic Diploma").row()
+    .text("Bachelor's Degree").row()
+    .text("Master's Degree").row()
+    .text("Doctorate").row()
+    .text("Others")
 
 // Register the project menu at main menu.
 mainMenu.register(projectMenu);
@@ -58,7 +82,7 @@ mainMenu.register(accountMenu);
 bot.use(mainMenu);
 bot.use(session({ initial: () => ({}) }));
 bot.use(conversations());
-bot.use(createConversation(registerUser));
+bot.use(createConversation(getNewUser));
  
 
 // -------------------------------------- USER ACCESS --------------------------------------
@@ -80,17 +104,17 @@ async function getUser(ctx : MyContext, next: NextFunction) : Promise<void> {
 };
 
 // Respond when users click the register button
-bot.callbackQuery("registerUser", async (ctx) => {
-    await ctx.conversation.enter("registerUser");
+bot.callbackQuery("getNewUser", async (ctx) => {
+    await ctx.conversation.enter("getNewUser");
 });
 
-// Register new users
-async function registerUser(conversation: MyConversation, ctx: MyContext) {
+// Ask the users for personal details to register them
+async function getNewUser(conversation: MyConversation, ctx: MyContext){
     // Storing details of new user in an object
     const user = {} as UserInfo;
     const nameRegex = new RegExp('([a-z]+\s?)+', 'gmi');
 
-    // Ask the users for personal details to register them
+    // Ask for full name
     await ctx.reply("What is your full name?");
     do {
         ctx = await conversation.waitFor("message:text");
@@ -103,8 +127,9 @@ async function registerUser(conversation: MyConversation, ctx: MyContext) {
                 break;
             };
         }
-    } while (true)
+    } while (true);
 
+    // Ask for age
     await ctx.reply("What is your age?");
     do {
         ctx = await conversation.waitFor("message:text");
@@ -117,11 +142,38 @@ async function registerUser(conversation: MyConversation, ctx: MyContext) {
                 break;
             };
         }
-    } while (true)
+    } while (true);
+
+    // Ask for education level
+    await ctx.reply("What is your highest education attainment?", { reply_markup: educationSelect });
+
+    // Ask for description
+    await ctx.reply("Please provide a short profile description. This will be seen by others.");
+    do {
+        ctx = await conversation.waitFor("message:text");
+        if (ctx.message) {
+                user.description = ctx.message.text as string;
+                break;
+        };
+    } while (true);
+
+    // await registerUser(user);
 
     // Leave the conversation
-    return user;
+    return;
 };
+
+// Register a new user
+async function registerUser(user: UserInfo) {
+    return await axios.post(`/api/user`)
+        .then(res => {
+
+        })
+        .catch(err => {
+
+        })
+};
+
 
 // -------------------------------------- COMMANDS --------------------------------------
 // Handle the /start command with getUser middleware to check if user exists
