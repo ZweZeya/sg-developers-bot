@@ -31,7 +31,6 @@ interface UserInfo {
     contacts: {
         private: {
             phone: number;
-            email?: string;
         };
         public?: {
             linkedin?: string;
@@ -67,6 +66,7 @@ const registerBtn = new InlineKeyboard()
     .text("Register", "getNewUser");
 
 // Create a education select keyboard
+const educationList = ["O Levels", "A Levels or equilavent", "Polytechnic diploma", "Bachelor's Degree", "Master's Degree", "Doctorate", "Others"];
 const educationKeyboard = new Keyboard()
     .text("O Levels").row()
     .text("A Levels or equilavent").row()
@@ -75,7 +75,18 @@ const educationKeyboard = new Keyboard()
     .text("Master's Degree").row()
     .text("Doctorate").row()
     .text("Others").row()
-    .oneTime();
+    .oneTime(true);
+
+
+// Create keyboard button to request user contact number
+const contactNumBtn = new Keyboard()
+    .requestContact("Allow").row()
+    .resized(true)
+    .oneTime(true);
+
+// Create skip button
+const skipBtn = new InlineKeyboard()
+    .text("Skip").row();
 
 // Register the project menu at main menu.
 mainMenu.register(projectMenu);
@@ -116,7 +127,10 @@ bot.callbackQuery("getNewUser", async (ctx) => {
 async function getNewUser(conversation: MyConversation, ctx: MyContext){
     // Storing details of new user in an object
     const user = {} as UserInfo;
-    const nameRegex = new RegExp('([a-z]+\s?)+', 'gmi');
+
+    // Regular expressions for validation
+    const nameRegex = new RegExp('^([a-z]+\s?)+$', 'gmi');
+    const emailRegex = new RegExp('^\w+@\w+\.\w+$', 'gm');
 
     // Ask for full name
     await ctx.reply("What is your full name?");
@@ -128,10 +142,9 @@ async function getNewUser(conversation: MyConversation, ctx: MyContext){
                 await ctx.reply("Please provide a valid full name.");
             } else {
                 user.name = name;
-                break;
             };
         }
-    } while (true);
+    } while (!user.name);
 
     // Ask for age
     await ctx.reply("What is your age?");
@@ -143,10 +156,9 @@ async function getNewUser(conversation: MyConversation, ctx: MyContext){
                 await ctx.reply("Please provide a valid age.");
             } else {
                 user.age = age;
-                break;
             };
         }
-    } while (true);
+    } while (!user.age);
 
     // Ask for education level
     await ctx.reply("What is your highest education?", { reply_markup: educationKeyboard });
@@ -154,10 +166,13 @@ async function getNewUser(conversation: MyConversation, ctx: MyContext){
         ctx = await conversation.waitFor("message:text");
         if (ctx.message) {
             const education = ctx.message.text as string;
-            user.education = education;
-            break;
+            if (!educationList.includes(education)) {
+                ctx.reply("Please use the keyboard provided.");
+            } else {
+                user.education = education;
+            };
         }
-    } while (!ctx.message);
+    } while (!user.education);
 
     // Ask for description
     await ctx.reply("Please provide a short profile description.\nThis will be seen by others.\n\n(char limit of 500)", {reply_markup: {remove_keyboard: true}});
@@ -169,13 +184,26 @@ async function getNewUser(conversation: MyConversation, ctx: MyContext){
                 await ctx.reply("Exceeded character limit of 500. Please shorten your description.")
             } else {
                 user.description = description;
-                break;
             }     
         };
-    } while (true);
+    } while (!user.description);
 
-    // Ask for contact details
-    await ctx.reply("")
+    // Ask for phone number
+    await ctx.reply("Please allow access to contact number.", { reply_markup: contactNumBtn });
+    do {
+        ctx = await conversation.wait();
+        if (ctx.message) {
+            const phone = parseInt(ctx.message.contact?.phone_number as string);
+            user.contacts = {private: {phone: phone}};
+        };
+    } while (!user.contacts.private.phone);
+
+    // Remove keyboard
+    await ctx.reply("Thank you!", { reply_markup: {remove_keyboard: true }});
+
+    // Ask for linkedin acc (optional)
+
+    // Ask for github acc (optional)
 
     // await registerUser(user);
 
