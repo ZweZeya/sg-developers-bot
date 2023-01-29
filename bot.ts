@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config({ path: './.env' });
 
-import { Bot, Context, type NextFunction, session, SessionFlavor, InlineKeyboard } from "grammy";
+import { Bot, Context, type NextFunction, session, SessionFlavor, InlineKeyboard, Keyboard } from "grammy";
 import { Menu } from "@grammyjs/menu";
 import { type Conversation, type ConversationFlavor, conversations, createConversation } from "@grammyjs/conversations";
 import axios from "axios";
@@ -31,11 +31,11 @@ interface UserInfo {
     contacts: {
         private: {
             phone: number;
-            email: string;
+            email?: string;
         };
-        public: {
-            linkedin: string;
-            github: string;
+        public?: {
+            linkedin?: string;
+            github?: string;
         };
     };
     telegramId: number;
@@ -46,6 +46,9 @@ interface UserInfo {
 const mainMenu = new Menu("main-menu")
     .submenu("Manage Projects", "project-menu").row()
     .submenu("Manage Account", "account-menu").row()
+    .text("Policy", (ctx) => {
+        ctx.reply("");
+    });
 
 // Create a project menu
 const projectMenu = new Menu("project-menu")
@@ -63,15 +66,16 @@ const accountMenu = new Menu("account-menu")
 const registerBtn = new InlineKeyboard()
     .text("Register", "getNewUser");
 
-// Create education select dropdown
-const educationSelect = new InlineKeyboard()
+// Create a education select keyboard
+const educationKeyboard = new Keyboard()
     .text("O Levels").row()
-    .text("A Levels").row()
-    .text("Polytechnic Diploma").row()
+    .text("A Levels or equilavent").row()
+    .text("Polytechnic diploma").row()
     .text("Bachelor's Degree").row()
     .text("Master's Degree").row()
     .text("Doctorate").row()
-    .text("Others")
+    .text("Others").row()
+    .oneTime();
 
 // Register the project menu at main menu.
 mainMenu.register(projectMenu);
@@ -145,17 +149,33 @@ async function getNewUser(conversation: MyConversation, ctx: MyContext){
     } while (true);
 
     // Ask for education level
-    await ctx.reply("What is your highest education attainment?", { reply_markup: educationSelect });
-
-    // Ask for description
-    await ctx.reply("Please provide a short profile description. This will be seen by others.");
+    await ctx.reply("What is your highest education?", { reply_markup: educationKeyboard });
     do {
         ctx = await conversation.waitFor("message:text");
         if (ctx.message) {
-                user.description = ctx.message.text as string;
+            const education = ctx.message.text as string;
+            user.education = education;
+            break;
+        }
+    } while (!ctx.message);
+
+    // Ask for description
+    await ctx.reply("Please provide a short profile description.\nThis will be seen by others.\n\n(char limit of 500)", {reply_markup: {remove_keyboard: true}});
+    do {
+        ctx = await conversation.waitFor("message:text");
+        if (ctx.message) {
+            const description = ctx.message.text as string;
+            if (description.split("").length > 500) {
+                await ctx.reply("Exceeded character limit of 500. Please shorten your description.")
+            } else {
+                user.description = description;
                 break;
+            }     
         };
     } while (true);
+
+    // Ask for contact details
+    await ctx.reply("")
 
     // await registerUser(user);
 
