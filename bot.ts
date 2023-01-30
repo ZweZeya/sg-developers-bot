@@ -29,10 +29,10 @@ interface UserInfo {
     occupation: string;
     description: string;
     contacts: {
-        private: {
+        personal: {
             phone: number;
         };
-        public?: {
+        universal?: {
             linkedin?: string;
             github?: string;
         };
@@ -129,8 +129,10 @@ async function getNewUser(conversation: MyConversation, ctx: MyContext){
     const user = {} as UserInfo;
 
     // Regular expressions for validation
-    const nameRegex = new RegExp('^([a-z]+\s?)+$', 'gmi');
-    const emailRegex = new RegExp('^\w+@\w+\.\w+$', 'gm');
+    const nameRegex = new RegExp('^([a-z]+\\s?)+$', 'gmi');
+    const phoneRegex = new RegExp('^65[\\d]{8}$', 'gm');
+    const linkedinRegex = new RegExp('^https:\/\/www\.linkedin\.com\/in\/[\\w|-]+\/?$', 'gm');
+    const githubRegex = new RegExp('^https:\/\/github\.com\/[\\w|-|.]+\/?$', 'gm');
 
     // Ask for full name
     await ctx.reply("What is your full name?");
@@ -189,21 +191,58 @@ async function getNewUser(conversation: MyConversation, ctx: MyContext){
     } while (!user.description);
 
     // Ask for phone number
-    await ctx.reply("Please allow access to contact number.", { reply_markup: contactNumBtn });
+    await ctx.reply("Please allow access to contact number.\nEnsure that you are using a Singapore phone number.", { reply_markup: contactNumBtn });
     do {
         ctx = await conversation.wait();
         if (ctx.message) {
-            const phone = parseInt(ctx.message.contact?.phone_number as string);
-            user.contacts = {private: {phone: phone}};
+            const phoneStr = ctx.message.contact?.phone_number as string
+            if (!phoneRegex.test(phoneStr)) {
+                await ctx.reply("Please provide a valid Singapore phone number.")
+            } else {
+                user.contacts = {personal: {phone: parseInt(phoneStr)}};
+            }
         };
-    } while (!user.contacts.private.phone);
+    } while (!user.contacts.personal.phone);
 
     // Remove keyboard
-    await ctx.reply("Thank you!", { reply_markup: {remove_keyboard: true }});
+    await ctx.reply("Thank you!", { reply_markup: { remove_keyboard: true }});
 
     // Ask for linkedin acc (optional)
+    await ctx.reply("What is your Linkedin account (provide url)?\nThis will be available for others to see.", { reply_markup: skipBtn });
+    do {
+        ctx = await conversation.waitFor("message:text");
+        if (ctx.message) {
+            console.log(ctx.message)
+            if (ctx.message.text === "Skip") {
+                break;
+            }
+            const linkedin = ctx.message.text as string;
+            if (!linkedinRegex.test(linkedin)) {
+                await ctx.reply("Please provide a valid Linkedin account url.\ne.g. https://www.linkedin.com/in/<acc>");
+            } else {
+                user.contacts = {...user.contacts, universal: {linkedin: linkedin}};
+            };
+        }
+    } while(!user.contacts.universal?.linkedin);
 
     // Ask for github acc (optional)
+    await ctx.reply("What is your Github account (provide url)?\nThis will be available for others to see.", { reply_markup: skipBtn });
+    do {
+        ctx = await conversation.waitFor("message:text");
+        if (ctx.message) {
+            if (ctx.message.text === "Skip") {
+                break;
+            }
+            const github = ctx.message.text as string;
+            if (!githubRegex.test(github)) {
+                await ctx.reply("Please provide a valid Github account url.\ne.g. https://www.github.com/<acc>");
+            } else {
+                user.contacts.universal= {...user.contacts.universal, github: github};
+            };
+        }
+    } while(!user.contacts.universal?.github);
+
+    await ctx.reply("Thank you for registering.", { reply_markup: { remove_keyboard: true } });
 
     // await registerUser(user);
 
