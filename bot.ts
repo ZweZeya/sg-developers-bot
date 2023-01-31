@@ -20,6 +20,8 @@ type MyConversation = Conversation<MyContext>;
 
 // Create an instance of the `Bot` class using custom context and pass your authentication token to it
 const bot = new Bot<MyContext>(process.env.BOT_TOKEN as string); 
+// Create an empty instance of the current user with the type UserInfo
+let user = {} as UserInfo;
 
 // -------------------------------------- INTERFACES --------------------------------------
 interface UserInfo {
@@ -104,9 +106,10 @@ bot.use(createConversation(getNewUser));
 // Check if user is registered in database
 async function getUser(ctx : MyContext, next: NextFunction) : Promise<void> {
     const telegramId = ctx.from?.id as number;
-    await axios.get(`/api/user/${telegramId}`)
+    await axios.get<UserInfo>(`/api/user/${telegramId}`)
         .then(async (res) => {
             console.log(res.data)
+            user = res.data
             await next();
         })
         .catch(err => {
@@ -125,8 +128,6 @@ bot.callbackQuery("getNewUser", async (ctx) => {
 
 // Ask the users for personal details to register them
 async function getNewUser(conversation: MyConversation, ctx: MyContext){
-    // Storing details of new user in an object
-    const user = {} as UserInfo;
 
     // Regular expressions for validation
     const nameRegex = new RegExp('^([a-z]+\\s?)+$', 'gmi');
@@ -269,6 +270,11 @@ bot.command("start", getUser, async (ctx) => {
     const startMsg = "Welcome to SG Developers!\n";
 
     await ctx.reply(startMsg, { reply_markup: mainMenu });
+});
+
+// Prompt user to type /start command
+bot.on("message", async (ctx) => {
+    await ctx.reply("Please type /start to run the bot.");
 });
 
 // Start the bot.
