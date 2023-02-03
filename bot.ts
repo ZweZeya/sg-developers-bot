@@ -41,9 +41,16 @@ interface UserInfo {
     telegramId: number;
 };
 
-// -------------------------------------- MESSAGE MARKUPS --------------------------------------
+// -------------------------------------- MIDDLEWARES --------------------------------------
+bot.use(session({ initial: () => ({}) }));
+bot.use(conversations());
+bot.use(createConversation(registerUserConvo));
+bot.use(createConversation(deleteUserConvo));
+bot.use(getUser);
+
+// -------------------------------------- MENUS --------------------------------------
 // Create a main menu
-const mainMenu = new Menu("main-menu")
+const mainMenu = new Menu<MyContext>("main-menu")
     .submenu("Manage Projects", "project-menu").row()
     .submenu("Manage Account", "account-menu").row()
     .text("Policy", (ctx) => {
@@ -51,20 +58,24 @@ const mainMenu = new Menu("main-menu")
     });
 
 // Create a project menu
-const projectMenu = new Menu("project-menu")
+const projectMenu = new Menu<MyContext>("project-menu")
     .text("New Project", (ctx) => ctx.reply("")).row()
     .back("Go Back");
 
 // Create an account menu
-const accountMenu = new Menu("account-menu")
+const accountMenu = new Menu<MyContext>("account-menu")
     .text("Edit Profile", (ctx) => ctx.reply("")).row()
     .text("View Profile", (ctx) => ctx.reply("")).row()
-    .text("Delete Account", (ctx) => ctx.reply("")).row()
+    .text("Delete Account", async (ctx) => {
+        await ctx.conversation.enter("deleteUserConvo");
+    }).row()
     .back("Go Back");
 
+
+// -------------------------------------- KEYBOARDS --------------------------------------
 // Create a register button
 const registerBtn = new InlineKeyboard()
-    .text("Register", "getNewUser");
+    .text("Register", "registerUserConvo");
 
 // Create a education select keyboard
 const educationList = ["O Levels", "A Levels or equilavent", "Polytechnic diploma", "Bachelor's Degree", "Master's Degree", "Doctorate", "Others"];
@@ -77,7 +88,6 @@ const educationKeyboard = new Keyboard()
     .text("Doctorate").row()
     .text("Others").row()
     .oneTime(true);
-
 
 // Create keyboard button to request user contact number
 const contactNumBtn = new Keyboard()
@@ -94,22 +104,16 @@ mainMenu.register(projectMenu);
 // Register the account menu at main menu.
 mainMenu.register(accountMenu);
 
-// -------------------------------------- MIDDLEWARES --------------------------------------
+// Use main menu module
 bot.use(mainMenu);
-bot.use(session({ initial: () => ({}) }));
-bot.use(conversations());
-bot.use(createConversation(getNewUser));
- 
 
 // -------------------------------------- USER ACCESS --------------------------------------
 // Check if user is registered in database
 async function getUser(ctx : MyContext, next: NextFunction) : Promise<void> {
     const telegramId = ctx.from?.id as number;
-    user.telegramId = telegramId;
-    await axios.get<UserInfo>(`/api/user/${telegramId}`)
+    return await axios.get<UserInfo>(`/api/user/${telegramId}`)
         .then(async (res) => {
-            console.log(res.data)
-            user = res.data
+            user = res.data;
             await next();
         })
         .catch(err => {
@@ -118,16 +122,16 @@ async function getUser(ctx : MyContext, next: NextFunction) : Promise<void> {
             console.log(err.response.headers);
             console.log(err.response.data);
             bot.api.sendMessage(telegramId, "Please register to continue.", { reply_markup: registerBtn });
-        })  
+        });  
 };
 
 // Respond when users click the register button
-bot.callbackQuery("getNewUser", async (ctx) => {
-    await ctx.conversation.enter("getNewUser");
+bot.callbackQuery("registerUserConvo", async (ctx) => {
+    await ctx.conversation.enter("registerUserConvo");
 });
 
 // Ask the users for personal details to register them
-async function getNewUser(conversation: MyConversation, ctx: MyContext){
+async function registerUserConvo(conversation: MyConversation, ctx: MyContext){
 
     // Regular expressions for validation
     const nameRegex = new RegExp('^([a-z]+\\s?)+$', 'gmi');
@@ -250,22 +254,62 @@ async function getNewUser(conversation: MyConversation, ctx: MyContext){
     return;
 };
 
+// Get user confirmation to delete account
+async function deleteUserConvo(conversation: MyConversation, ctx: MyContext) {
+
+    const ref = "delete/" + user.name
+    // Ask user to confirm delete
+    await ctx.reply(`Deleting your account means that your profile will be permanently removed.\nPlease type ${ref} to confirm.`);
+    do {
+        ctx = await conversation.waitFor("message:text");
+        if (ctx.message) {
+            if (ctx.message.text === ref) {
+                break;
+            } else {
+                await ctx.reply(`Sorry your input does not match ${ref}.\nFailed to delete account.`);
+                // Leave the conversation
+                return;
+            }
+        }
+    } while (ctx.update.message?.text);
+
+    // Delete user account
+    await deleteUser(ctx);
+    await ctx.reply("Your account has been deleted.")
+
+    // Leave the conversation
+    return;
+};
+
+
 // Register a new user via a post request
 async function registerUser(user: UserInfo, ctx: MyContext) {
     return await axios.post(`/api/user`, { user })
         .then(async (res) => {
-            await ctx.reply("Thank you for registering.", { reply_markup: { remove_keyboard: true } });
+            await ctx.reply("Thank you for registering.\nType /start to get started.", { reply_markup: { remove_keyboard: true } });
         })
         .catch(async (err) => {
-            console.log(err.header);
+            console.log(err.message);
             await ctx.reply("There has been an error in registering.", { reply_markup: { remove_keyboard: true } });
         });
 };
 
+// Delete user account
+async function deleteUser(ctx: Context) {
+    return await axios.delete(`/api/user/${ctx.from?.id}`)
+    .then(async (res) => {
+        await ctx.reply("Your account has been deleted.");
+    })
+    .catch(async (err) => {
+        console.log(err.message);
+        await ctx.reply("There has been an error in deleting your account.");
+    });
+}
+
 
 // -------------------------------------- COMMANDS --------------------------------------
 // Handle the /start command with getUser middleware to check if user exists
-bot.command("start", getUser, async (ctx) => {
+bot.command("start", async (ctx) => {
     // Menu text
     const startMsg = "Welcome to SG Developers!\n";
 
