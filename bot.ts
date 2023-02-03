@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config({ path: './.env' });
 
-import { Bot, Context, type NextFunction, session, SessionFlavor, InlineKeyboard, Keyboard } from "grammy";
+import { Bot, Context, type NextFunction, session, SessionFlavor, Keyboard } from "grammy";
 import { Menu } from "@grammyjs/menu";
 import { type Conversation, type ConversationFlavor, conversations, createConversation } from "@grammyjs/conversations";
 import axios from "axios";
@@ -46,7 +46,7 @@ bot.use(session({ initial: () => ({}) }));
 bot.use(conversations());
 bot.use(createConversation(registerUserConvo));
 bot.use(createConversation(deleteUserConvo));
-bot.use(getUser);
+// bot.use(getUser);
 
 // -------------------------------------- MENUS --------------------------------------
 // Create a main menu
@@ -66,7 +66,7 @@ const projectMenu = new Menu<MyContext>("project-menu")
 const accountMenu = new Menu<MyContext>("account-menu")
     .text("Edit Profile", (ctx) => ctx.reply("")).row()
     .text("View Profile", (ctx) => ctx.reply("")).row()
-    .text("Delete Account", async (ctx) => {
+    .text("Delete Account", getUser, async (ctx) => {
         await ctx.conversation.enter("deleteUserConvo");
     }).row()
     .back("Go Back");
@@ -74,8 +74,10 @@ const accountMenu = new Menu<MyContext>("account-menu")
 
 // -------------------------------------- KEYBOARDS --------------------------------------
 // Create a register button
-const registerBtn = new InlineKeyboard()
-    .text("Register", "registerUserConvo");
+const registerBtn = new Keyboard()
+    .text("Register").row()
+    .resized(true)
+    .oneTime(true);
 
 // Create a education select keyboard
 const educationList = ["O Levels", "A Levels or equilavent", "Polytechnic diploma", "Bachelor's Degree", "Master's Degree", "Doctorate", "Others"];
@@ -96,8 +98,10 @@ const contactNumBtn = new Keyboard()
     .oneTime(true);
 
 // Create skip button
-const skipBtn = new InlineKeyboard()
-    .text("Skip").row();
+const skipBtn = new Keyboard()
+    .text("Skip").row()
+    .resized(true)
+    .oneTime(true);
 
 // Register the project menu at main menu.
 mainMenu.register(projectMenu);
@@ -125,11 +129,6 @@ async function getUser(ctx : MyContext, next: NextFunction) : Promise<void> {
         });  
 };
 
-// Respond when users click the register button
-bot.callbackQuery("registerUserConvo", async (ctx) => {
-    await ctx.conversation.enter("registerUserConvo");
-});
-
 // Ask the users for personal details to register them
 async function registerUserConvo(conversation: MyConversation, ctx: MyContext){
 
@@ -139,8 +138,11 @@ async function registerUserConvo(conversation: MyConversation, ctx: MyContext){
     const linkedinRegex = new RegExp('^https:\/\/www\.linkedin\.com\/in\/[\\w|-]+\/?$', 'gm');
     const githubRegex = new RegExp('^https:\/\/github\.com\/[\\w|-|.]+\/?$', 'gm');
 
+    // Append telegramId to user object
+    user.telegramId = ctx.from?.id as number;
+
     // Ask for full name
-    await ctx.reply("What is your full name?");
+    await ctx.reply("What is your full name?", { reply_markup: { remove_keyboard: true } });
     do {
         ctx = await conversation.waitFor("message:text");
         if (ctx.message) {
@@ -217,7 +219,6 @@ async function registerUserConvo(conversation: MyConversation, ctx: MyContext){
     do {
         ctx = await conversation.waitFor("message:text");
         if (ctx.message) {
-            console.log(ctx.message)
             if (ctx.message.text === "Skip") {
                 break;
             }
@@ -275,7 +276,6 @@ async function deleteUserConvo(conversation: MyConversation, ctx: MyContext) {
 
     // Delete user account
     await deleteUser(ctx);
-    await ctx.reply("Your account has been deleted.")
 
     // Leave the conversation
     return;
@@ -309,16 +309,22 @@ async function deleteUser(ctx: Context) {
 
 // -------------------------------------- COMMANDS --------------------------------------
 // Handle the /start command with getUser middleware to check if user exists
-bot.command("start", async (ctx) => {
+bot.command("start", getUser, async (ctx) => {
     // Menu text
     const startMsg = "Welcome to SG Developers!\n";
 
     await ctx.reply(startMsg, { reply_markup: mainMenu });
 });
 
+
 // Prompt user to type /start command
 bot.on("message", async (ctx) => {
-    await ctx.reply("Please type /start to run the bot.");
+    if (ctx.message.text === "Register") {
+        // Respond when users click the register button
+        await ctx.conversation.enter("registerUserConvo");
+    } else {
+        await ctx.reply("Please type /start to run the bot.");
+    }; 
 });
 
 // Start the bot.
