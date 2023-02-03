@@ -28,7 +28,6 @@ interface UserInfo {
     name: string;
     age: number;
     education: string;
-    occupation: string;
     description: string;
     contacts: {
         personal: {
@@ -106,6 +105,7 @@ bot.use(createConversation(getNewUser));
 // Check if user is registered in database
 async function getUser(ctx : MyContext, next: NextFunction) : Promise<void> {
     const telegramId = ctx.from?.id as number;
+    user.telegramId = telegramId;
     await axios.get<UserInfo>(`/api/user/${telegramId}`)
         .then(async (res) => {
             console.log(res.data)
@@ -243,23 +243,23 @@ async function getNewUser(conversation: MyConversation, ctx: MyContext){
         }
     } while(!user.contacts.universal?.github);
 
-    await ctx.reply("Thank you for registering.", { reply_markup: { remove_keyboard: true } });
-
-    // await registerUser(user);
+    // Register a new user
+    await registerUser(user, ctx);
 
     // Leave the conversation
     return;
 };
 
-// Register a new user
-async function registerUser(user: UserInfo) {
-    return await axios.post(`/api/user`)
-        .then(res => {
-
+// Register a new user via a post request
+async function registerUser(user: UserInfo, ctx: MyContext) {
+    return await axios.post(`/api/user`, { user })
+        .then(async (res) => {
+            await ctx.reply("Thank you for registering.", { reply_markup: { remove_keyboard: true } });
         })
-        .catch(err => {
-
-        })
+        .catch(async (err) => {
+            console.log(err.header);
+            await ctx.reply("There has been an error in registering.", { reply_markup: { remove_keyboard: true } });
+        });
 };
 
 
