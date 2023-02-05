@@ -1,48 +1,19 @@
 import dotenv from "dotenv";
 dotenv.config({ path: './.env' });
 
-import { Bot, Context, type NextFunction, session, SessionFlavor, Keyboard } from "grammy";
+import { Bot, Context, type NextFunction, session, Keyboard } from "grammy";
 import { Menu } from "@grammyjs/menu";
-import { type Conversation, type ConversationFlavor, conversations, createConversation } from "@grammyjs/conversations";
+import { conversations, createConversation } from "@grammyjs/conversations";
 import axios from "axios";
+import { MyContext, MyConversation, UserInfo } from "./interfaces";
 
 // Configure axios baseURL to server api url
 axios.defaults.baseURL = 'http://localhost:4000';
 
-// Configure custom session data
-interface SessionData {
-    /** custom session property */
-    user: UserInfo;
-};
-// Create custom context
-type MyContext = Context & SessionFlavor<SessionData> & ConversationFlavor;
-type MyConversation = Conversation<MyContext>;
-
 // Create an instance of the `Bot` class using custom context and pass your authentication token to it
 const bot = new Bot<MyContext>(process.env.DEV_BOT_TOKEN as string); 
-// Create an empty instance of the current user with the type UserInfo
-// let user = {} as UserInfo;
-
-// -------------------------------------- INTERFACES --------------------------------------
-interface UserInfo {
-    name: string;
-    age: number;
-    education: string;
-    description: string;
-    contacts: {
-        personal: {
-            phone: number;
-        };
-        universal?: {
-            linkedin?: string;
-            github?: string;
-        };
-    };
-    telegramId: number;
-};
 
 // -------------------------------------- MIDDLEWARES --------------------------------------
-// bot.use(session({ initial: () => ({}) }));
 bot.use(session({ initial: () => ({ user: {} as UserInfo }) }));
 bot.use(conversations());
 bot.use(createConversation(registerUserConvo));
@@ -143,9 +114,6 @@ async function registerUserConvo(conversation: MyConversation, ctx: MyContext){
     const phoneRegex = new RegExp('^65[\\d]{8}$', 'gm');
     const linkedinRegex = new RegExp('^https:\/\/www\.linkedin\.com\/in\/[\\w|-]+\/?$', 'gm');
     const githubRegex = new RegExp('^https:\/\/github\.com\/[\\w|-|.]+\/?$', 'gm');
-
-    // // Append telegramId to user object
-    // user.telegramId = ctx.from?.id as number;
 
     // Ask for full name
     await ctx.reply("What is your full name?", { reply_markup: { remove_keyboard: true } });
