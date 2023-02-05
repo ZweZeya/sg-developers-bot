@@ -12,16 +12,16 @@ axios.defaults.baseURL = 'http://localhost:4000';
 // Configure custom session data
 interface SessionData {
     /** custom session property */
-    foo: string;
+    user: UserInfo;
 };
 // Create custom context
 type MyContext = Context & SessionFlavor<SessionData> & ConversationFlavor;
 type MyConversation = Conversation<MyContext>;
 
 // Create an instance of the `Bot` class using custom context and pass your authentication token to it
-const bot = new Bot<MyContext>(process.env.BOT_TOKEN as string); 
+const bot = new Bot<MyContext>(process.env.DEV_BOT_TOKEN as string); 
 // Create an empty instance of the current user with the type UserInfo
-let user = {} as UserInfo;
+// let user = {} as UserInfo;
 
 // -------------------------------------- INTERFACES --------------------------------------
 interface UserInfo {
@@ -42,7 +42,8 @@ interface UserInfo {
 };
 
 // -------------------------------------- MIDDLEWARES --------------------------------------
-bot.use(session({ initial: () => ({}) }));
+// bot.use(session({ initial: () => ({}) }));
+bot.use(session({ initial: () => ({ user: {} as UserInfo }) }));
 bot.use(conversations());
 bot.use(createConversation(registerUserConvo));
 bot.use(createConversation(deleteUserConvo));
@@ -114,10 +115,13 @@ bot.use(mainMenu);
 // -------------------------------------- USER ACCESS --------------------------------------
 // Check if user is registered in database
 async function getUser(ctx : MyContext, next: NextFunction) : Promise<void> {
+
     const telegramId = ctx.from?.id as number;
+    ctx.session.user.telegramId = telegramId;
+    
     return await axios.get<UserInfo>(`/api/user/${telegramId}`)
         .then(async (res) => {
-            user = res.data;
+            ctx.session.user = res.data;
             await next();
         })
         .catch(err => {
@@ -132,14 +136,16 @@ async function getUser(ctx : MyContext, next: NextFunction) : Promise<void> {
 // Ask the users for personal details to register them
 async function registerUserConvo(conversation: MyConversation, ctx: MyContext){
 
+    
+
     // Regular expressions for validation
     const nameRegex = new RegExp('^([a-z]+\\s?)+$', 'gmi');
     const phoneRegex = new RegExp('^65[\\d]{8}$', 'gm');
     const linkedinRegex = new RegExp('^https:\/\/www\.linkedin\.com\/in\/[\\w|-]+\/?$', 'gm');
     const githubRegex = new RegExp('^https:\/\/github\.com\/[\\w|-|.]+\/?$', 'gm');
 
-    // Append telegramId to user object
-    user.telegramId = ctx.from?.id as number;
+    // // Append telegramId to user object
+    // user.telegramId = ctx.from?.id as number;
 
     // Ask for full name
     await ctx.reply("What is your full name?", { reply_markup: { remove_keyboard: true } });
@@ -150,10 +156,10 @@ async function registerUserConvo(conversation: MyConversation, ctx: MyContext){
             if (!nameRegex.test(name)) {
                 await ctx.reply("Please provide a valid full name.");
             } else {
-                user.name = name;
+                ctx.session.user.name = name;
             };
         }
-    } while (!user.name);
+    } while (!ctx.session.user.name);
 
     // Ask for age
     await ctx.reply("What is your age?");
@@ -164,10 +170,10 @@ async function registerUserConvo(conversation: MyConversation, ctx: MyContext){
             if (age < 16 || age > 90) {
                 await ctx.reply("Please provide a valid age.");
             } else {
-                user.age = age;
+                ctx.session.user.age = age;
             };
         }
-    } while (!user.age);
+    } while (!ctx.session.user.age);
 
     // Ask for education level
     await ctx.reply("What is your highest education?", { reply_markup: educationKeyboard });
@@ -178,10 +184,10 @@ async function registerUserConvo(conversation: MyConversation, ctx: MyContext){
             if (!educationList.includes(education)) {
                 ctx.reply("Please use the keyboard provided.");
             } else {
-                user.education = education;
+                ctx.session.user.education = education;
             };
         }
-    } while (!user.education);
+    } while (!ctx.session.user.education);
 
     // Ask for description
     await ctx.reply("Please provide a short profile description.\nThis will be seen by others.\n\n(char limit of 500)", {reply_markup: {remove_keyboard: true}});
@@ -192,10 +198,10 @@ async function registerUserConvo(conversation: MyConversation, ctx: MyContext){
             if (description.split("").length > 500) {
                 await ctx.reply("Exceeded character limit of 500. Please shorten your description.")
             } else {
-                user.description = description;
+                ctx.session.user.description = description;
             }     
         };
-    } while (!user.description);
+    } while (!ctx.session.user.description);
 
     // Ask for phone number
     await ctx.reply("Please allow access to contact number.\nEnsure that you are using a Singapore phone number.", { reply_markup: contactNumBtn });
@@ -206,10 +212,10 @@ async function registerUserConvo(conversation: MyConversation, ctx: MyContext){
             if (!phoneRegex.test(phoneStr)) {
                 await ctx.reply("Please provide a valid Singapore phone number.")
             } else {
-                user.contacts = {personal: {phone: parseInt(phoneStr)}};
+                ctx.session.user.contacts = {personal: {phone: parseInt(phoneStr)}};
             }
         };
-    } while (!user.contacts.personal.phone);
+    } while (!ctx.session.user.contacts.personal.phone);
 
     // Remove keyboard
     await ctx.reply("Thank you!", { reply_markup: { remove_keyboard: true }});
@@ -226,10 +232,10 @@ async function registerUserConvo(conversation: MyConversation, ctx: MyContext){
             if (!linkedinRegex.test(linkedin)) {
                 await ctx.reply("Please provide a valid Linkedin account url.\ne.g. https://www.linkedin.com/in/<acc>");
             } else {
-                user.contacts = {...user.contacts, universal: {linkedin: linkedin}};
+                ctx.session.user.contacts = {...ctx.session.user.contacts, universal: {linkedin: linkedin}};
             };
         }
-    } while(!user.contacts.universal?.linkedin);
+    } while(!ctx.session.user.contacts.universal?.linkedin);
 
     // Ask for github acc (optional)
     await ctx.reply("What is your Github account (provide url)?\nThis will be available for others to see.", { reply_markup: skipBtn });
@@ -243,13 +249,14 @@ async function registerUserConvo(conversation: MyConversation, ctx: MyContext){
             if (!githubRegex.test(github)) {
                 await ctx.reply("Please provide a valid Github account url.\ne.g. https://www.github.com/<acc>");
             } else {
-                user.contacts.universal= {...user.contacts.universal, github: github};
+                ctx.session.user.contacts.universal= {...ctx.session.user.contacts.universal, github: github};
             };
         }
-    } while(!user.contacts.universal?.github);
+    } while(!ctx.session.user.contacts.universal?.github);
 
+    console.log(ctx.session)
     // Register a new user
-    await registerUser(user, ctx);
+    // await registerUser(user, ctx);
 
     // Leave the conversation
     return;
@@ -258,7 +265,7 @@ async function registerUserConvo(conversation: MyConversation, ctx: MyContext){
 // Get user confirmation to delete account
 async function deleteUserConvo(conversation: MyConversation, ctx: MyContext) {
 
-    const ref = "delete/" + user.name
+    const ref = "delete/" + ctx.session.user.name
     // Ask user to confirm delete
     await ctx.reply(`Deleting your account means that your profile will be permanently removed.\nPlease type ${ref} to confirm.`);
     do {
@@ -310,6 +317,7 @@ async function deleteUser(ctx: Context) {
 // -------------------------------------- COMMANDS --------------------------------------
 // Handle the /start command with getUser middleware to check if user exists
 bot.command("start", getUser, async (ctx) => {
+
     // Menu text
     const startMsg = "Welcome to SG Developers!\n";
 
