@@ -6,6 +6,9 @@ import { Menu } from "@grammyjs/menu";
 import { conversations, createConversation } from "@grammyjs/conversations";
 import axios from "axios";
 import { MyContext, MyConversation, UserInfo } from "./interfaces";
+import { registerBtn } from "./components/keyboard";
+import registerUserConvo from "./components/account/register";
+import deleteUserConvo from "./components/account/delete";
 
 // Configure axios baseURL to server api url
 axios.defaults.baseURL = 'http://localhost:4000';
@@ -43,43 +46,10 @@ const accountMenu = new Menu<MyContext>("account-menu")
     }).row()
     .back("Go Back");
 
-
-// -------------------------------------- KEYBOARDS --------------------------------------
-// Create a register button
-const registerBtn = new Keyboard()
-    .text("Register").row()
-    .resized(true)
-    .oneTime(true);
-
-// Create a education select keyboard
-const educationList = ["O Levels", "A Levels or equilavent", "Polytechnic diploma", "Bachelor's Degree", "Master's Degree", "Doctorate", "Others"];
-const educationKeyboard = new Keyboard()
-    .text("O Levels").row()
-    .text("A Levels or equilavent").row()
-    .text("Polytechnic diploma").row()
-    .text("Bachelor's Degree").row()
-    .text("Master's Degree").row()
-    .text("Doctorate").row()
-    .text("Others").row()
-    .oneTime(true);
-
-// Create keyboard button to request user contact number
-const contactNumBtn = new Keyboard()
-    .requestContact("Allow").row()
-    .resized(true)
-    .oneTime(true);
-
-// Create skip button
-const skipBtn = new Keyboard()
-    .text("Skip").row()
-    .resized(true)
-    .oneTime(true);
-
 // Register the project menu at main menu.
 mainMenu.register(projectMenu);
 // Register the account menu at main menu.
 mainMenu.register(accountMenu);
-
 // Use main menu module
 bot.use(mainMenu);
 
@@ -103,184 +73,6 @@ async function getUser(ctx : MyContext, next: NextFunction) : Promise<void> {
             bot.api.sendMessage(telegramId, "Please register to continue.", { reply_markup: registerBtn });
         });  
 };
-
-// Ask the users for personal details to register them
-async function registerUserConvo(conversation: MyConversation, ctx: MyContext){
-
-    
-
-    // Regular expressions for validation
-    const nameRegex = new RegExp('^([a-z]+\\s?)+$', 'gmi');
-    const phoneRegex = new RegExp('^65[\\d]{8}$', 'gm');
-    const linkedinRegex = new RegExp('^https:\/\/www\.linkedin\.com\/in\/[\\w|-]+\/?$', 'gm');
-    const githubRegex = new RegExp('^https:\/\/github\.com\/[\\w|-|.]+\/?$', 'gm');
-
-    // Ask for full name
-    await ctx.reply("What is your full name?", { reply_markup: { remove_keyboard: true } });
-    do {
-        ctx = await conversation.waitFor("message:text");
-        if (ctx.message) {
-            const name = ctx.message.text as string;
-            if (!nameRegex.test(name)) {
-                await ctx.reply("Please provide a valid full name.");
-            } else {
-                ctx.session.user.name = name;
-            };
-        }
-    } while (!ctx.session.user.name);
-
-    // Ask for age
-    await ctx.reply("What is your age?");
-    do {
-        ctx = await conversation.waitFor("message:text");
-        if (ctx.message) {
-            const age = parseInt(ctx.message.text as string);
-            if (age < 16 || age > 90) {
-                await ctx.reply("Please provide a valid age.");
-            } else {
-                ctx.session.user.age = age;
-            };
-        }
-    } while (!ctx.session.user.age);
-
-    // Ask for education level
-    await ctx.reply("What is your highest education?", { reply_markup: educationKeyboard });
-    do {
-        ctx = await conversation.waitFor("message:text");
-        if (ctx.message) {
-            const education = ctx.message.text as string;
-            if (!educationList.includes(education)) {
-                ctx.reply("Please use the keyboard provided.");
-            } else {
-                ctx.session.user.education = education;
-            };
-        }
-    } while (!ctx.session.user.education);
-
-    // Ask for description
-    await ctx.reply("Please provide a short profile description.\nThis will be seen by others.\n\n(char limit of 500)", {reply_markup: {remove_keyboard: true}});
-    do {
-        ctx = await conversation.waitFor("message:text");
-        if (ctx.message) {
-            const description = ctx.message.text as string;
-            if (description.split("").length > 500) {
-                await ctx.reply("Exceeded character limit of 500. Please shorten your description.")
-            } else {
-                ctx.session.user.description = description;
-            }     
-        };
-    } while (!ctx.session.user.description);
-
-    // Ask for phone number
-    await ctx.reply("Please allow access to contact number.\nEnsure that you are using a Singapore phone number.", { reply_markup: contactNumBtn });
-    do {
-        ctx = await conversation.wait();
-        if (ctx.message) {
-            const phoneStr = ctx.message.contact?.phone_number as string
-            if (!phoneRegex.test(phoneStr)) {
-                await ctx.reply("Please provide a valid Singapore phone number.")
-            } else {
-                ctx.session.user.contacts = {personal: {phone: parseInt(phoneStr)}};
-            }
-        };
-    } while (!ctx.session.user.contacts.personal.phone);
-
-    // Remove keyboard
-    await ctx.reply("Thank you!", { reply_markup: { remove_keyboard: true }});
-
-    // Ask for linkedin acc (optional)
-    await ctx.reply("What is your Linkedin account (provide url)?\nThis will be available for others to see.", { reply_markup: skipBtn });
-    do {
-        ctx = await conversation.waitFor("message:text");
-        if (ctx.message) {
-            if (ctx.message.text === "Skip") {
-                break;
-            }
-            const linkedin = ctx.message.text as string;
-            if (!linkedinRegex.test(linkedin)) {
-                await ctx.reply("Please provide a valid Linkedin account url.\ne.g. https://www.linkedin.com/in/<acc>");
-            } else {
-                ctx.session.user.contacts = {...ctx.session.user.contacts, universal: {linkedin: linkedin}};
-            };
-        }
-    } while(!ctx.session.user.contacts.universal?.linkedin);
-
-    // Ask for github acc (optional)
-    await ctx.reply("What is your Github account (provide url)?\nThis will be available for others to see.", { reply_markup: skipBtn });
-    do {
-        ctx = await conversation.waitFor("message:text");
-        if (ctx.message) {
-            if (ctx.message.text === "Skip") {
-                break;
-            }
-            const github = ctx.message.text as string;
-            if (!githubRegex.test(github)) {
-                await ctx.reply("Please provide a valid Github account url.\ne.g. https://www.github.com/<acc>");
-            } else {
-                ctx.session.user.contacts.universal= {...ctx.session.user.contacts.universal, github: github};
-            };
-        }
-    } while(!ctx.session.user.contacts.universal?.github);
-
-    console.log(ctx.session)
-    // Register a new user
-    // await registerUser(user, ctx);
-
-    // Leave the conversation
-    return;
-};
-
-// Get user confirmation to delete account
-async function deleteUserConvo(conversation: MyConversation, ctx: MyContext) {
-
-    const ref = "delete/" + ctx.session.user.name
-    // Ask user to confirm delete
-    await ctx.reply(`Deleting your account means that your profile will be permanently removed.\nPlease type ${ref} to confirm.`);
-    do {
-        ctx = await conversation.waitFor("message:text");
-        if (ctx.message) {
-            if (ctx.message.text === ref) {
-                break;
-            } else {
-                await ctx.reply(`Sorry your input does not match ${ref}.\nFailed to delete account.`);
-                // Leave the conversation
-                return;
-            }
-        }
-    } while (ctx.update.message?.text);
-
-    // Delete user account
-    await deleteUser(ctx);
-
-    // Leave the conversation
-    return;
-};
-
-
-// Register a new user via a post request
-async function registerUser(user: UserInfo, ctx: MyContext) {
-    return await axios.post(`/api/user`, { user })
-        .then(async (res) => {
-            await ctx.reply("Thank you for registering.\nType /start to get started.", { reply_markup: { remove_keyboard: true } });
-        })
-        .catch(async (err) => {
-            console.log(err.message);
-            await ctx.reply("There has been an error in registering.", { reply_markup: { remove_keyboard: true } });
-        });
-};
-
-// Delete user account
-async function deleteUser(ctx: Context) {
-    return await axios.delete(`/api/user/${ctx.from?.id}`)
-    .then(async (res) => {
-        await ctx.reply("Your account has been deleted.");
-    })
-    .catch(async (err) => {
-        console.log(err.message);
-        await ctx.reply("There has been an error in deleting your account.");
-    });
-}
-
 
 // -------------------------------------- COMMANDS --------------------------------------
 // Handle the /start command with getUser middleware to check if user exists
