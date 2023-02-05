@@ -1,11 +1,11 @@
 import dotenv from "dotenv";
 dotenv.config({ path: './.env' });
 
-import { Bot, Context, type NextFunction, session, Keyboard } from "grammy";
+import { Bot, type NextFunction, session } from "grammy";
 import { Menu } from "@grammyjs/menu";
 import { conversations, createConversation } from "@grammyjs/conversations";
 import axios from "axios";
-import { MyContext, MyConversation, UserInfo } from "./global";
+import { MyContext, UserInfo } from "./global";
 import { registerBtn } from "./components/keyboard";
 import registerUserConvo from "./components/account/register";
 import deleteUserConvo from "./components/account/delete";
