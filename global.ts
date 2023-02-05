@@ -30,16 +30,6 @@ interface UserInfo {
     telegramId: number;
 };
 
-// // Validator attributes
-// interface ValidatorInfo {
-//     nameRegex: RegExp;
-//     ageRegex: RegExp;
-//     phoneRegex: RegExp;
-//     linkedinRegex: RegExp;
-//     githubRegex: RegExp;
-//     educationList: string[];
-// };
-
 // ----------------------------------------- CLASSES -----------------------------------------
 class Validator {
     // Regular expressions for validation
