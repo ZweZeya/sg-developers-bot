@@ -28,4 +28,14 @@ interface UserInfo {
     telegramId: number;
 };
 
-export { MyContext, MyConversation, UserInfo };
+// Validator attributes
+interface Validator {
+    nameRegex: RegExp;
+    ageRegex: RegExp;
+    phoneRegex: RegExp;
+    linkedinRegex: RegExp;
+    githubRegex: RegExp;
+    educationList: string[];
+};
+
+export { MyContext, MyConversation, UserInfo, Validator };

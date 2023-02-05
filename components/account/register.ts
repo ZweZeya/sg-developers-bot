@@ -8,6 +8,7 @@ import axios from "axios";
 export default async function registerUserConvo(conversation: MyConversation, ctx: MyContext){
     // Regular expressions for validation
     const nameRegex = new RegExp('^([a-z]+\\s?)+$', 'gmi');
+    const ageRegex = new RegExp('^\\d{2}$', 'gm');
     const phoneRegex = new RegExp('^65[\\d]{8}$', 'gm');
     const linkedinRegex = new RegExp('^https:\/\/www\.linkedin\.com\/in\/[\\w|-]+\/?$', 'gm');
     const githubRegex = new RegExp('^https:\/\/github\.com\/[\\w|-|.]+\/?$', 'gm');
@@ -34,11 +35,11 @@ export default async function registerUserConvo(conversation: MyConversation, ct
     do {
         ctx = await conversation.waitFor("message:text");
         if (ctx.message) {
-            const age = parseInt(ctx.message.text as string);
-            if (age < 16 || age > 90) {
+            const age = ctx.message.text as string;
+            if (!ageRegex.test(age) || parseInt(age) < 16 || parseInt(age) > 90) {
                 await ctx.reply("Please provide a valid age.");
             } else {
-                ctx.session.user.age = age;
+                ctx.session.user.age = parseInt(age);
             };
         }
     } while (!ctx.session.user.age);
