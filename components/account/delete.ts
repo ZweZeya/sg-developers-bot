@@ -1,5 +1,5 @@
 
-import { MyContext, MyConversation } from "../../interfaces";
+import { MyContext, MyConversation } from "../../global";
 import axios from "axios";
 
 

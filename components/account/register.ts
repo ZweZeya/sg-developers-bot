@@ -1,4 +1,4 @@
-import { MyContext, MyConversation, UserInfo } from "../../interfaces";
+import { MyContext, MyConversation, UserInfo, Validator } from "../../global";
 import { educationKeyboard, contactNumBtn, skipBtn } from "../keyboard";
 import axios from "axios";
 
@@ -6,23 +6,16 @@ import axios from "axios";
 
 // Ask the users for personal details to register them
 export default async function registerUserConvo(conversation: MyConversation, ctx: MyContext){
-    // Regular expressions for validation
-    const nameRegex = new RegExp('^([a-z]+\\s?)+$', 'gmi');
-    const ageRegex = new RegExp('^\\d{2}$', 'gm');
-    const phoneRegex = new RegExp('^65[\\d]{8}$', 'gm');
-    const linkedinRegex = new RegExp('^https:\/\/www\.linkedin\.com\/in\/[\\w|-]+\/?$', 'gm');
-    const githubRegex = new RegExp('^https:\/\/github\.com\/[\\w|-|.]+\/?$', 'gm');
-
-    // List of vaild education options 
-    const educationList = ["O Levels", "A Levels or equilavent", "Polytechnic diploma", "Bachelor's Degree", "Master's Degree", "Doctorate", "Others"];
-   
+    // Initialise validator to check user input
+    const validator = new Validator();
+    
     // Ask for full name
     await ctx.reply("What is your full name?", { reply_markup: { remove_keyboard: true } });
     do {
         ctx = await conversation.waitFor("message:text");
         if (ctx.message) {
             const name = ctx.message.text as string;
-            if (!nameRegex.test(name)) {
+            if (!validator.nameRegex.test(name)) {
                 await ctx.reply("Please provide a valid full name.");
             } else {
                 ctx.session.user.name = name;
@@ -36,7 +29,7 @@ export default async function registerUserConvo(conversation: MyConversation, ct
         ctx = await conversation.waitFor("message:text");
         if (ctx.message) {
             const age = ctx.message.text as string;
-            if (!ageRegex.test(age) || parseInt(age) < 16 || parseInt(age) > 90) {
+            if (!validator.ageRegex.test(age) || parseInt(age) < 16 || parseInt(age) > 90) {
                 await ctx.reply("Please provide a valid age.");
             } else {
                 ctx.session.user.age = parseInt(age);
@@ -50,7 +43,7 @@ export default async function registerUserConvo(conversation: MyConversation, ct
         ctx = await conversation.waitFor("message:text");
         if (ctx.message) {
             const education = ctx.message.text as string;
-            if (!educationList.includes(education)) {
+            if (!validator.educationList.includes(education)) {
                 ctx.reply("Please use the keyboard provided.");
             } else {
                 ctx.session.user.education = education;
@@ -78,13 +71,13 @@ export default async function registerUserConvo(conversation: MyConversation, ct
         ctx = await conversation.wait();
         if (ctx.message) {
             const phoneStr = ctx.message.contact?.phone_number as string
-            if (!phoneRegex.test(phoneStr)) {
+            if (!validator.phoneRegex.test(phoneStr)) {
                 await ctx.reply("Please provide a valid Singapore phone number.")
             } else {
                 ctx.session.user.contacts = {personal: {phone: parseInt(phoneStr)}};
             }
         };
-    } while (!ctx.session.user.contacts.personal.phone);
+    } while (!ctx.session.user.contacts?.personal?.phone);
 
     // Remove keyboard
     await ctx.reply("Thank you!", { reply_markup: { remove_keyboard: true }});
@@ -98,7 +91,7 @@ export default async function registerUserConvo(conversation: MyConversation, ct
                 break;
             }
             const linkedin = ctx.message.text as string;
-            if (!linkedinRegex.test(linkedin)) {
+            if (!validator.linkedinRegex.test(linkedin)) {
                 await ctx.reply("Please provide a valid Linkedin account url.\ne.g. https://www.linkedin.com/in/<acc>");
             } else {
                 ctx.session.user.contacts = {...ctx.session.user.contacts, universal: {linkedin: linkedin}};
@@ -115,7 +108,7 @@ export default async function registerUserConvo(conversation: MyConversation, ct
                 break;
             }
             const github = ctx.message.text as string;
-            if (!githubRegex.test(github)) {
+            if (!validator.githubRegex.test(github)) {
                 await ctx.reply("Please provide a valid Github account url.\ne.g. https://www.github.com/<acc>");
             } else {
                 ctx.session.user.contacts.universal= {...ctx.session.user.contacts.universal, github: github};
