@@ -23,12 +23,13 @@ const contactNumBtn = new Keyboard()
     .resized(true)
     .oneTime(true);
 
-// Create skip button
-const skipBtn = new Keyboard()
-    .text("Skip").row()
-    .resized(true)
-    .oneTime(true);
+// Create a single custom button
+const createBtn = (name: string) => {
+    return new Keyboard()
+        .text(name).row()
+        .resized(true)
+        .oneTime(true);
+};
 
 
-
-export { registerBtn, educationKeyboard, contactNumBtn, skipBtn };
+export { registerBtn, educationKeyboard, contactNumBtn, createBtn };

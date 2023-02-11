@@ -1,5 +1,10 @@
+/* This is a file of important interfaces, classes and functions t
+hat are commonly used accross the entire application */
+
+
 import { Context, SessionFlavor } from "grammy";
 import { type Conversation, type ConversationFlavor } from "@grammyjs/conversations";
+import axios from "axios";
 
 
 // ----------------------------------------- INTERFACES -----------------------------------------
@@ -51,4 +56,23 @@ class Validator {
     };
 };
 
-export { MyContext, MyConversation, UserInfo, Validator };
+// ----------------------------------------- FUNCTIONS -----------------------------------------
+// Get user from db
+async function getUser(telegramId: number) {
+   
+    return await axios.get<UserInfo>(`/api/user/${telegramId}`)
+        .then(async (res) => {
+           return res.data;
+        })
+        .catch(err => {
+            console.log(err.response.status);
+            console.log(err.message);
+            console.log(err.response.headers);
+            console.log(err.response.data);
+            return;
+        });  
+};
+
+
+
+export { MyContext, MyConversation, UserInfo, Validator, getUser };

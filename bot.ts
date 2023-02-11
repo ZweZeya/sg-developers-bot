@@ -5,7 +5,7 @@ import { Bot, type NextFunction, session } from "grammy";
 import { Menu } from "@grammyjs/menu";
 import { conversations, createConversation } from "@grammyjs/conversations";
 import axios from "axios";
-import { MyContext, UserInfo } from "./global";
+import { MyContext, UserInfo, getUser } from "./global";
 import { registerBtn } from "./components/keyboard";
 import registerUserConvo from "./components/account/register";
 import deleteUserConvo from "./components/account/delete";
@@ -21,7 +21,6 @@ bot.use(session({ initial: () => ({ user: {} as UserInfo }) }));
 bot.use(conversations());
 bot.use(createConversation(registerUserConvo));
 bot.use(createConversation(deleteUserConvo));
-// bot.use(getUser);
 
 // -------------------------------------- MENUS --------------------------------------
 // Create a main menu
@@ -39,9 +38,9 @@ const projectMenu = new Menu<MyContext>("project-menu")
 
 // Create an account menu
 const accountMenu = new Menu<MyContext>("account-menu")
-    .text("Edit Profile", (ctx) => ctx.reply("")).row()
+    // .text("Edit Profile", (ctx) => ctx.reply("")).row()
     .text("View Profile", (ctx) => ctx.reply("")).row()
-    .text("Delete Account", getUser, async (ctx) => {
+    .text("Delete Account", checkUser, async (ctx) => {
         await ctx.conversation.enter("deleteUserConvo");
     }).row()
     .back("Go Back");
@@ -55,28 +54,26 @@ bot.use(mainMenu);
 
 // -------------------------------------- USER ACCESS --------------------------------------
 // Check if user is registered in database
-async function getUser(ctx : MyContext, next: NextFunction) : Promise<void> {
+async function checkUser(ctx : MyContext, next: NextFunction) : Promise<void> {
 
     const telegramId = ctx.from?.id as number;
     ctx.session.user.telegramId = telegramId;
-    
-    return await axios.get<UserInfo>(`/api/user/${telegramId}`)
-        .then(async (res) => {
-            ctx.session.user = res.data;
-            await next();
-        })
-        .catch(err => {
-            console.log(err.response.status);
-            console.log(err.message);
-            console.log(err.response.headers);
-            console.log(err.response.data);
-            bot.api.sendMessage(telegramId, "Please register to continue.", { reply_markup: registerBtn });
-        });  
+
+    const user = await getUser(telegramId);
+
+    if (user) {
+        // Saves user in session 
+        ctx.session.user = user;
+        await next();
+    } else {
+        // Prompts user to register
+        bot.api.sendMessage(telegramId, "Please register to continue.", { reply_markup: registerBtn });
+    } 
 };
 
 // -------------------------------------- COMMANDS --------------------------------------
-// Handle the /start command with getUser middleware to check if user exists
-bot.command("start", getUser, async (ctx) => {
+// Handle the /start command with checkUser middleware to check if user exists
+bot.command("start", checkUser, async (ctx) => {
 
     // Menu text
     const startMsg = "Welcome to SG Developers!\n";

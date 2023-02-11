@@ -1,5 +1,5 @@
 import { MyContext, MyConversation, UserInfo, Validator } from "../../global";
-import { educationKeyboard, contactNumBtn, skipBtn } from "../keyboard";
+import { educationKeyboard, contactNumBtn, createBtn } from "../keyboard";
 import axios from "axios";
 
 
@@ -83,7 +83,7 @@ export default async function registerUserConvo(conversation: MyConversation, ct
     await ctx.reply("Thank you!", { reply_markup: { remove_keyboard: true }});
 
     // Ask for linkedin acc (optional)
-    await ctx.reply("What is your Linkedin account (provide url)?\nThis will be available for others to see.", { reply_markup: skipBtn });
+    await ctx.reply("What is your Linkedin account (provide url)?\nThis will be available for others to see.", { reply_markup: createBtn("Skip") });
     do {
         ctx = await conversation.waitFor("message:text");
         if (ctx.message) {
@@ -100,7 +100,7 @@ export default async function registerUserConvo(conversation: MyConversation, ct
     } while(!ctx.session.user.contacts.universal?.linkedin);
 
     // Ask for github acc (optional)
-    await ctx.reply("What is your Github account (provide url)?\nThis will be available for others to see.", { reply_markup: skipBtn });
+    await ctx.reply("What is your Github account (provide url)?\nThis will be available for others to see.", { reply_markup: createBtn("Skip") });
     do {
         ctx = await conversation.waitFor("message:text");
         if (ctx.message) {
