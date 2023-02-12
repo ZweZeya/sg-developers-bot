@@ -6,9 +6,11 @@ import { Menu } from "@grammyjs/menu";
 import { conversations, createConversation } from "@grammyjs/conversations";
 import axios from "axios";
 import { MyContext, UserInfo, getUser } from "./global";
-import { registerBtn } from "./components/keyboard";
+import { createBtn, registerBtn } from "./components/keyboard";
 import registerUserConvo from "./components/account/register";
 import deleteUserConvo from "./components/account/delete";
+import editUserConvo from "./components/account/edit";
+import profileMsg from "./components/account/view";
 
 // Configure axios baseURL to server api url
 axios.defaults.baseURL = 'http://localhost:4000';
@@ -21,6 +23,7 @@ bot.use(session({ initial: () => ({ user: {} as UserInfo }) }));
 bot.use(conversations());
 bot.use(createConversation(registerUserConvo));
 bot.use(createConversation(deleteUserConvo));
+bot.use(createConversation(editUserConvo));
 
 // -------------------------------------- MENUS --------------------------------------
 // Create a main menu
@@ -34,23 +37,28 @@ const mainMenu = new Menu<MyContext>("main-menu")
 // Create a project menu
 const projectMenu = new Menu<MyContext>("project-menu")
     .text("New Project", (ctx) => ctx.reply("")).row()
-    .back("Go Back");
+    .back("Back");
 
 // Create an account menu
 const accountMenu = new Menu<MyContext>("account-menu")
     // .text("Edit Profile", (ctx) => ctx.reply("")).row()
-    .text("View Profile", (ctx) => ctx.reply("")).row()
+    .text("View Profile", async (ctx) => {
+        const msg = await profileMsg(ctx.update.callback_query.from.id);
+        ctx.reply(msg, { reply_markup: createBtn("Edit Profile") });
+    }).row()
     .text("Delete Account", checkUser, async (ctx) => {
         await ctx.conversation.enter("deleteUserConvo");
     }).row()
-    .back("Go Back");
+    .back("Back");
 
 // Register the project menu at main menu.
 mainMenu.register(projectMenu);
 // Register the account menu at main menu.
 mainMenu.register(accountMenu);
+
 // Use main menu module
 bot.use(mainMenu);
+
 
 // -------------------------------------- USER ACCESS --------------------------------------
 // Check if user is registered in database
@@ -87,6 +95,8 @@ bot.on("message", async (ctx) => {
     if (ctx.message.text === "Register") {
         // Respond when users click the register button
         await ctx.conversation.enter("registerUserConvo");
+    } else if (ctx.message.text === "Edit Profile") {
+        
     } else {
         await ctx.reply("Please type /start to run the bot.");
     }; 

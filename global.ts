@@ -35,8 +35,16 @@ interface UserInfo {
     telegramId: number;
 };
 
+// Edit profile information
+interface UpdateInfo {
+    field: string;
+    valid: boolean;
+    new: string | number;
+};
+
 // ----------------------------------------- CLASSES -----------------------------------------
 class Validator {
+
     // Regular expressions for validation
     nameRegex: RegExp;
     ageRegex: RegExp;
@@ -45,6 +53,8 @@ class Validator {
     githubRegex: RegExp;
     // List of vaild education options 
     educationList: string[];
+    // Max characters for desciption
+    descriptionLimit: number;
 
     constructor() {
         this.nameRegex = new RegExp('^([a-z]+\\s?)+$', 'gmi');
@@ -53,12 +63,71 @@ class Validator {
         this.linkedinRegex = new RegExp('^https:\/\/www\.linkedin\.com\/in\/[\\w|-]+\/?$', 'gm');
         this.githubRegex = new RegExp('^https:\/\/github\.com\/[\\w|-|.]+\/?$', 'gm');
         this.educationList = ["O Levels", "A Levels or equilavent", "Polytechnic diploma", "Bachelor's Degree", "Master's Degree", "Doctorate", "Others"];
+        this.descriptionLimit = 300;
     };
+
+    validateName(name: string): boolean {
+        return this.nameRegex.test(name);
+    };
+
+    validateAge(age: string): boolean {
+        return this.ageRegex.test(age);
+    };
+
+    validatePhone(phone: string): boolean {
+        return this.phoneRegex.test(phone);
+    };
+
+    validateLinkedin(linkedin: string): boolean {
+        return this.linkedinRegex.test(linkedin);
+    };
+
+    validateGithub(github: string): boolean {
+        return this.githubRegex.test(github);
+    };
+
+    validateEducation(education: string): boolean {
+        return this.educationList.includes(education);
+    };
+
+    validateDescription(desciption: string): boolean {
+        return desciption.length <= this.descriptionLimit;
+    };
+
+    validate(input: string, field: string): boolean {
+
+        switch(field) {
+            case "name":
+                return this.validateName(input);
+
+            case "age":
+                return this.validateAge(input);
+
+            case "phone":
+                return this.validatePhone(input);
+
+            case "linkedin":
+                return this.validateLinkedin(input);
+
+            case "github":
+                return this.validateGithub(input);
+
+            case "education":
+                return this.validateEducation(input);
+
+            case "description":
+                return this.validateDescription(input);
+
+        };
+
+        return false;
+    };
+
 };
 
 // ----------------------------------------- FUNCTIONS -----------------------------------------
 // Get user from db
-async function getUser(telegramId: number) {
+const getUser = async (telegramId: number) => {
    
     return await axios.get<UserInfo>(`/api/user/${telegramId}`)
         .then(async (res) => {
@@ -75,4 +144,4 @@ async function getUser(telegramId: number) {
 
 
 
-export { MyContext, MyConversation, UserInfo, Validator, getUser };
+export { MyContext, MyConversation, UserInfo, UpdateInfo, Validator, getUser };
