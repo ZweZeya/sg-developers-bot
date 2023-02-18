@@ -1,7 +1,7 @@
 import { getUser } from "../../global";
 
 export default async function profileMsg(telegramId: number) {
-    const strArr: string[] = ["Profile\n"];
+    const strArr: string[] = ["--- Profile ---\n"];
     let msgStr = "";
     const user = await getUser(telegramId);
     if (user) {
@@ -22,5 +22,5 @@ export default async function profileMsg(telegramId: number) {
         msgStr += row + "\n";
     });
 
-    return msgStr;
+    return msgStr + "\n--- End ---\nTo edit, please type /editProfile\n";
 };

@@ -27,11 +27,11 @@ export default async function editUserConvo(conversation: MyConversation, ctx: M
         if (field in profilePath) {
             updateDetails.field = field;
         } else {
-            await ctx.reply(`Invalid profile field. Exiting...`, { reply_markup: { remove_keyboard: true } })
+            await ctx.reply(`Invalid profile field. Exiting...`)
         }
     }
 
-    await ctx.reply(`Please give a new ${updateDetails.field}.`,  { reply_markup: { remove_keyboard: true } })
+    await ctx.reply(`Please give a new ${updateDetails.field}.`)
     ctx = await conversation.waitFor("message:text");
     if (ctx.message) {
         if (!validator.validate(ctx.message.text as string, updateDetails.field)) {

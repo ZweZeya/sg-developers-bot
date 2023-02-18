@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config({ path: './.env' });
 
-import { Bot, type NextFunction, session } from "grammy";
+import { Bot, type NextFunction, session, InlineKeyboard } from "grammy";
 import { Menu } from "@grammyjs/menu";
 import { conversations, createConversation } from "@grammyjs/conversations";
 import axios from "axios";
@@ -44,7 +44,7 @@ const accountMenu = new Menu<MyContext>("account-menu")
     // .text("Edit Profile", (ctx) => ctx.reply("")).row()
     .text("View Profile", async (ctx) => {
         const msg = await profileMsg(ctx.update.callback_query.from.id);
-        ctx.reply(msg, { reply_markup: createBtn("Edit Profile") });
+        ctx.reply(msg);
     }).row()
     .text("Delete Account", checkUser, async (ctx) => {
         await ctx.conversation.enter("deleteUserConvo");
@@ -89,19 +89,22 @@ bot.command("start", checkUser, async (ctx) => {
     await ctx.reply(startMsg, { reply_markup: mainMenu });
 });
 
+bot.command("editProfile", checkUser, async (ctx) => {
+
+    await ctx.conversation.enter("editUserConvo");
+});
+
 
 // Prompt user to type /start command
 bot.on("message", async (ctx) => {
     if (ctx.message.text === "Register") {
         // Respond when users click the register button
         await ctx.conversation.enter("registerUserConvo");
-    } else if (ctx.message.text === "Edit Profile") {
-        // Respond when users click the edit profile button
-        await ctx.conversation.enter("editUserConvo");
     } else {
         await ctx.reply("Please type /start to run the bot.");
     }; 
 });
+
 
 // Start the bot.
 bot.start();
