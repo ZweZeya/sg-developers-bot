@@ -17,44 +17,33 @@ export default async function editUserConvo(conversation: MyConversation, ctx: M
     
     const user = ctx.session.user;
     const newUser = {...user};
-    const ref = "edit/" + user.name
     const updateDetails = {} as UpdateInfo;
     const validator = new Validator();
 
     await ctx.reply("Which field would you like to edit?");
-    do {
-        ctx = await conversation.waitFor("message:text");
-        if (ctx.message) {
-            // Leave the conversation if user does not wish to edit profile
-            if (ctx.message.text === "/exit-edit-profile") return;
-            const field = (ctx.message.text as string).toLowerCase().trim();
-            if (field in profilePath) {
-                updateDetails.field = field;
-            } else {
-                await ctx.reply(`Please enter a valid field to edit.\n
-                If you do not wish to edit, type /exit-edit-profile to exit.`)
-            }
+    ctx = await conversation.waitFor("message:text");
+    if (ctx.message) {
+        const field = (ctx.message.text as string).toLowerCase().trim();
+        if (field in profilePath) {
+            updateDetails.field = field;
+        } else {
+            await ctx.reply(`Invalid profile field. Exiting...`, { reply_markup: { remove_keyboard: true } })
         }
-        
-    } while (!updateDetails.field);
+    }
 
-    await ctx.reply(`Please give a new ${updateDetails.field},`)
-    do {
-        ctx = await conversation.waitFor("message:text");
-        if (ctx.message) {
-            // Leave the conversation if user does not wish to edit profile
-            if (ctx.message.text === "/exit-edit-profile") return;
-            if (!validator.validate(ctx.message.text as string, updateDetails.field)) {
-                await ctx.reply(`Please enter a valid ${updateDetails.field}.\n
-                If you do not wish to edit, type /exit-edit-profile to exit.`)
-            } else {
-                updateDetails.valid = true;
-                updateDetails.new = updateDetails.field === "phone" ? parseInt(ctx.message.text as string) : ctx.message.text as string;
-                eval("newUser." + profilePath[updateDetails.field as keyof typeof profilePath] + "=" + updateDetails.new)
-            }
+    await ctx.reply(`Please give a new ${updateDetails.field}.`,  { reply_markup: { remove_keyboard: true } })
+    ctx = await conversation.waitFor("message:text");
+    if (ctx.message) {
+        if (!validator.validate(ctx.message.text as string, updateDetails.field)) {
+            await ctx.reply(`Invalid ${updateDetails.field}. Exiting...`)
+        } else {
+            updateDetails.valid = true;
+            updateDetails.new = updateDetails.field === "phone" ? parseInt(ctx.message.text as string) : ctx.message.text as string;
+            eval("newUser." + profilePath[updateDetails.field as keyof typeof profilePath] + "=\'" + updateDetails.new + "\'");
         }
-    } while (updateDetails.valid === false)
+    }
 
+    await editUser(ctx, newUser);
 
     // Leave the conversation
     return;

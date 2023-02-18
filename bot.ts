@@ -96,7 +96,8 @@ bot.on("message", async (ctx) => {
         // Respond when users click the register button
         await ctx.conversation.enter("registerUserConvo");
     } else if (ctx.message.text === "Edit Profile") {
-        
+        // Respond when users click the edit profile button
+        await ctx.conversation.enter("editUserConvo");
     } else {
         await ctx.reply("Please type /start to run the bot.");
     }; 
