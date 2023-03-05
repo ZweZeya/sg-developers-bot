@@ -22,5 +22,5 @@ export default async function profileMsg(telegramId: number) {
         msgStr += row + "\n";
     });
 
-    return msgStr + "\n--- End ---\nTo edit, please type /editProfile\n";
+    return msgStr + "\n--- End ---\n";
 };

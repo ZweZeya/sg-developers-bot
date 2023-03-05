@@ -1,0 +1,1 @@
+// bot.api.sendMessage(process.env.CHAT_ID as string, "hello")

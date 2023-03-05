@@ -11,6 +11,7 @@ import registerUserConvo from "./components/account/register";
 import deleteUserConvo from "./components/account/delete";
 import editUserConvo from "./components/account/edit";
 import profileMsg from "./components/account/view";
+import createProjectConvo from "./components/project/new";
 
 // Configure axios baseURL to server api url
 axios.defaults.baseURL = 'http://localhost:4000';
@@ -24,8 +25,18 @@ bot.use(conversations());
 bot.use(createConversation(registerUserConvo));
 bot.use(createConversation(deleteUserConvo));
 bot.use(createConversation(editUserConvo));
+bot.use(createConversation(createProjectConvo));
 
 // -------------------------------------- MENUS --------------------------------------
+
+// Edit profile menu
+const editProfileMenu = new Menu<MyContext>("edit-profile-menu")
+    .text("Edit Profile", async (ctx) => {
+        await ctx.conversation.enter("editUserConvo")
+    }).row()
+
+bot.use(editProfileMenu);
+
 // Create a main menu
 const mainMenu = new Menu<MyContext>("main-menu")
     .submenu("Manage Projects", "project-menu").row()
@@ -36,20 +47,23 @@ const mainMenu = new Menu<MyContext>("main-menu")
 
 // Create a project menu
 const projectMenu = new Menu<MyContext>("project-menu")
-    .text("New Project", (ctx) => ctx.reply("")).row()
+    .text("New Project", async (ctx) => {
+        await ctx.conversation.enter("createProjectConvo");
+    }).row()
     .back("Back");
 
 // Create an account menu
 const accountMenu = new Menu<MyContext>("account-menu")
-    // .text("Edit Profile", (ctx) => ctx.reply("")).row()
     .text("View Profile", async (ctx) => {
         const msg = await profileMsg(ctx.update.callback_query.from.id);
-        ctx.reply(msg);
+        ctx.reply(msg, {reply_markup: editProfileMenu});
     }).row()
     .text("Delete Account", checkUser, async (ctx) => {
         await ctx.conversation.enter("deleteUserConvo");
     }).row()
     .back("Back");
+
+
 
 // Register the project menu at main menu.
 mainMenu.register(projectMenu);
@@ -58,6 +72,8 @@ mainMenu.register(accountMenu);
 
 // Use main menu module
 bot.use(mainMenu);
+
+
 
 
 // -------------------------------------- USER ACCESS --------------------------------------
@@ -82,16 +98,10 @@ async function checkUser(ctx : MyContext, next: NextFunction) : Promise<void> {
 // -------------------------------------- COMMANDS --------------------------------------
 // Handle the /start command with checkUser middleware to check if user exists
 bot.command("start", checkUser, async (ctx) => {
-
     // Menu text
     const startMsg = "Welcome to SG Developers!\n";
 
     await ctx.reply(startMsg, { reply_markup: mainMenu });
-});
-
-bot.command("editProfile", checkUser, async (ctx) => {
-
-    await ctx.conversation.enter("editUserConvo");
 });
 
 
@@ -104,6 +114,8 @@ bot.on("message", async (ctx) => {
         await ctx.reply("Please type /start to run the bot.");
     }; 
 });
+
+
 
 
 // Start the bot.

@@ -42,6 +42,12 @@ interface UpdateInfo {
     new: string | number;
 };
 
+interface ProjectInfo {
+    name: string,
+    description: string,
+    createdBy: UserInfo,
+}
+
 // ----------------------------------------- CLASSES -----------------------------------------
 class Validator {
 
@@ -54,20 +60,22 @@ class Validator {
     // List of vaild education options 
     educationList: string[];
     // Max characters for desciption
+    nameLimit: number;
     descriptionLimit: number;
 
     constructor() {
-        this.nameRegex = new RegExp('^([a-z]+\\s?)+$', 'gmi');
-        this.ageRegex = new RegExp('^\\d{2}$', 'gm');
-        this.phoneRegex = new RegExp('^65[\\d]{8}$', 'gm');
-        this.linkedinRegex = new RegExp('^https:\/\/www\.linkedin\.com\/in\/[\\w|-]+\/?$', 'gm');
-        this.githubRegex = new RegExp('^https:\/\/github\.com\/[\\w|-|.]+\/?$', 'gm');
+        this.nameRegex = new RegExp('^([a-z]+\\s?)+$', 'mi');
+        this.ageRegex = new RegExp('^\\d{2}$', 'm');
+        this.phoneRegex = new RegExp('^65[\\d]{8}$', 'm');
+        this.linkedinRegex = new RegExp('^https:\/\/www\.linkedin\.com\/in\/[\\w|-]+\/?$', 'm');
+        this.githubRegex = new RegExp('^https:\/\/github\.com\/[\\w|-|.]+\/?$', 'm');
         this.educationList = ["O Levels", "A Levels or equilavent", "Polytechnic diploma", "Bachelor's Degree", "Master's Degree", "Doctorate", "Others"];
-        this.descriptionLimit = 300;
+        this.nameLimit = 100;
+        this.descriptionLimit = 250;
     };
 
     validateName(name: string): boolean {
-        return this.nameRegex.test(name);
+        return this.nameRegex.test(name) && name.length < this.nameLimit;
     };
 
     validateAge(age: string): boolean {
@@ -125,6 +133,28 @@ class Validator {
 
 };
 
+class ProjectValidator {
+    // Regular expressions for validation
+    nameRegex: RegExp;
+    // Max characters for desciption
+    nameLimit: number;
+    descriptionLimit: number;
+
+    constructor() {
+        this.nameRegex = new RegExp('^(\\w+\\s?)+$', 'mi');
+        this.nameLimit = 50;
+        this.descriptionLimit = 250;
+    }
+
+    validateName(name: string) {
+        return this.nameRegex.test(name) && name.length < this.nameLimit;
+    };
+
+    validateDescription(desciption: string) {
+        return desciption.length < this.descriptionLimit;
+    }
+}
+
 // ----------------------------------------- FUNCTIONS -----------------------------------------
 // Get user from db
 const getUser = async (telegramId: number) => {
@@ -144,4 +174,13 @@ const getUser = async (telegramId: number) => {
 
 
 
-export { MyContext, MyConversation, UserInfo, UpdateInfo, Validator, getUser };
+export { 
+    MyContext,
+    MyConversation, 
+    UserInfo, 
+    UpdateInfo, 
+    Validator,
+    ProjectValidator, 
+    getUser, 
+    ProjectInfo 
+};
