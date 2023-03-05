@@ -50,7 +50,7 @@ export default async function createProjectConvo(conversation: MyConversation, c
 
 // Create a new project in db
 const createProject = async (project: ProjectInfo, ctx: MyContext) => {
-    await axios.post("", { project })
+    await axios.post("/api/project", { project })
         .then(res => {
             ctx.reply("New project successfully created.");
         })
