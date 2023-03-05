@@ -1,5 +1,6 @@
 import { MyContext, MyConversation, UserInfo, ProjectInfo, ProjectValidator } from "../../global";
 import axios from "axios";
+import { generateProjectMsg } from "../chat/announce";
 
 export default async function createProjectConvo(conversation: MyConversation, ctx: MyContext) {
     
@@ -53,6 +54,7 @@ const createProject = async (project: ProjectInfo, ctx: MyContext) => {
     await axios.post("/api/project", { project })
         .then(res => {
             ctx.reply("New project successfully created.");
+            ctx.api.sendMessage(process.env.CHAT_ID as string, generateProjectMsg(project));
         })
         .catch(err => {
             console.log(err)
