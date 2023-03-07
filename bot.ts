@@ -56,7 +56,7 @@ const projectMenu = new Menu<MyContext>("project-menu")
 const accountMenu = new Menu<MyContext>("account-menu")
     .text("View Profile", async (ctx) => {
         const msg = await profileMsg(ctx.update.callback_query.from.id);
-        ctx.reply(msg, {reply_markup: editProfileMenu});
+        ctx.reply(msg, { reply_markup: editProfileMenu, parse_mode: "HTML" });
     }).row()
     .text("Delete Account", checkUser, async (ctx) => {
         await ctx.conversation.enter("deleteUserConvo");
@@ -72,8 +72,6 @@ mainMenu.register(accountMenu);
 
 // Use main menu module
 bot.use(mainMenu);
-
-
 
 
 // -------------------------------------- USER ACCESS --------------------------------------
@@ -99,9 +97,9 @@ async function checkUser(ctx : MyContext, next: NextFunction) : Promise<void> {
 // Handle the /start command with checkUser middleware to check if user exists
 bot.command("start", checkUser, async (ctx) => {
     // Menu text
-    const startMsg = "Welcome to SG Developers!\n";
+    const startMsg = "<b>Welcome to SG Developers!</b>\n";
 
-    await ctx.reply(startMsg, { reply_markup: mainMenu });
+    await ctx.reply(startMsg, { reply_markup: mainMenu, parse_mode: "HTML" });
 });
 
 
@@ -114,8 +112,6 @@ bot.on("message", async (ctx) => {
         await ctx.reply("Please type /start to run the bot.");
     }; 
 });
-
-
 
 
 // Start the bot.

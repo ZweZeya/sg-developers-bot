@@ -164,10 +164,7 @@ const getUser = async (telegramId: number) => {
            return res.data;
         })
         .catch(err => {
-            console.log(err.response.status);
-            console.log(err.message);
-            console.log(err.response.headers);
-            console.log(err.response.data);
+            console.log(err);
             return;
         });  
 };
