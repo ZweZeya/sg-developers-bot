@@ -1,7 +1,7 @@
 import { getUser } from "../../global";
 
 export default async function profileMsg(telegramId: number) {
-    const strArr: string[] = ["<b>Profile</b>\n"];
+    const strArr: string[] = [`<b>Profile</b>\n`];
     let msgStr = "";
     const user = await getUser(telegramId);
     if (user) {

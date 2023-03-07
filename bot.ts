@@ -4,6 +4,7 @@ dotenv.config({ path: './.env' });
 import { Bot, type NextFunction, session, InlineKeyboard } from "grammy";
 import { Menu } from "@grammyjs/menu";
 import { conversations, createConversation } from "@grammyjs/conversations";
+import { emojiParser } from "@grammyjs/emoji";
 import axios from "axios";
 import { MyContext, UserInfo, getUser } from "./global";
 import { createBtn, registerBtn } from "./components/keyboard";
@@ -21,6 +22,7 @@ const bot = new Bot<MyContext>(process.env.DEV_BOT_TOKEN as string);
 
 // -------------------------------------- MIDDLEWARES --------------------------------------
 bot.use(session({ initial: () => ({ user: {} as UserInfo }) }));
+bot.use(emojiParser());
 bot.use(conversations());
 bot.use(createConversation(registerUserConvo));
 bot.use(createConversation(deleteUserConvo));
@@ -116,3 +118,7 @@ bot.on("message", async (ctx) => {
 
 // Start the bot.
 bot.start();
+
+bot.catch(err => {
+    console.log(err);
+})

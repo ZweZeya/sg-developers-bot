@@ -5,6 +5,7 @@
   },
   "dependencies": {
     "@grammyjs/conversations": "^1.1.0",
+    "@grammyjs/emoji": "^1.1.0",
     "@grammyjs/menu": "^1.1.2",
     "axios": "^1.2.3",
     "dotenv": "^16.0.3",

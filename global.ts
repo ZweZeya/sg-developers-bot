@@ -4,6 +4,7 @@ hat are commonly used accross the entire application */
 
 import { Context, SessionFlavor } from "grammy";
 import { type Conversation, type ConversationFlavor } from "@grammyjs/conversations";
+import { EmojiFlavor } from "@grammyjs/emoji";
 import axios from "axios";
 
 
@@ -14,7 +15,7 @@ interface SessionData {
     user: UserInfo;
 };
 // Create custom context
-type MyContext = Context & SessionFlavor<SessionData> & ConversationFlavor;
+type MyContext = Context & SessionFlavor<SessionData> & ConversationFlavor & EmojiFlavor<Context>; 
 type MyConversation = Conversation<MyContext>;
 
 // User attributes

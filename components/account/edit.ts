@@ -27,7 +27,7 @@ export default async function editUserConvo(conversation: MyConversation, ctx: M
         if (field in profilePath) {
             updateDetails.field = field;
         } else {
-            await ctx.reply(`Invalid profile field. Exiting...`)
+            return await ctx.reply(`Invalid profile field. Exiting...`)
         }
     }
 
@@ -35,7 +35,7 @@ export default async function editUserConvo(conversation: MyConversation, ctx: M
     ctx = await conversation.waitFor("message:text");
     if (ctx.message) {
         if (!validator.validate(ctx.message.text as string, updateDetails.field)) {
-            await ctx.reply(`Invalid ${updateDetails.field}. Exiting...`)
+            return await ctx.reply(`Invalid ${updateDetails.field}. Exiting...`)
         } else {
             updateDetails.valid = true;
             updateDetails.new = updateDetails.field === "phone" ? parseInt(ctx.message.text as string) : ctx.message.text as string;
