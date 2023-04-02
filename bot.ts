@@ -15,7 +15,7 @@ import profileMsg from "./components/account/view";
 import createProjectConvo from "./components/project/new";
 
 // Configure axios baseURL to server api url
-axios.defaults.baseURL = "http://localhost:4000";
+axios.defaults.baseURL = `http://${process.env.SERVER_IP}:4000`;
 
 // Create an instance of the `Bot` class using custom context and pass your authentication token to it
 const bot = new Bot<MyContext>(process.env.BOT_TOKEN as string);
