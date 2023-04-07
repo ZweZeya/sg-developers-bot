@@ -6,7 +6,7 @@ import { Menu } from "@grammyjs/menu";
 import { conversations, createConversation } from "@grammyjs/conversations";
 import { emojiParser } from "@grammyjs/emoji";
 import axios from "axios";
-import { MyContext, UserInfo, getUser } from "./global";
+import { MyContext, UserInfo, getUser, getProjectById, ProjectInfo } from "./global";
 import { createBtn, registerBtn } from "./components/keyboard";
 import registerUserConvo from "./components/account/register";
 import deleteUserConvo from "./components/account/delete";
@@ -15,7 +15,7 @@ import profileMsg from "./components/account/view";
 import createProjectConvo from "./components/project/new";
 
 // Configure axios baseURL to server api url
-axios.defaults.baseURL = `http://${process.env.SERVER_IP}:4000`;
+axios.defaults.baseURL = `http://${process.env.DEV_SERVER_IP}:4000`;
 
 // Create an instance of the `Bot` class using custom context and pass your authentication token to it
 const bot = new Bot<MyContext>(process.env.BOT_TOKEN as string);
@@ -47,7 +47,7 @@ const mainMenu = new Menu<MyContext>("main-menu")
   .submenu("Manage Account", "account-menu")
   .row()
   .text("Policy", (ctx) => {
-    ctx.reply("");
+    ctx.reply("Policy");
   });
 
 // Create a project menu
@@ -120,34 +120,36 @@ bot.on("message", async (ctx) => {
 
 // Send message to owner if someone is interested in their project
 bot.callbackQuery("interested", async (ctx) => {
-  const owner = ctx.update.callback_query.from.id;
-  const userId = ctx.from.id;
-  const username = ctx.from.username;
-  const user = (await getUser(userId)) as UserInfo;
+  const interestedUserId = ctx.from.id;
+  const interestedUsername = ctx.from.username;
+  const interestedUser = await getUser(interestedUserId) as UserInfo;
+  const projectId = ctx.update.callback_query.message?.text?.split("\n")[0].split(" ")[1] as string;
+  const project = await getProjectById(projectId) as ProjectInfo;
+  const projectOwnerId = project.createdBy.telegramId;
 
   let msg: string =
     "This user wants to work with you!" +
     "\n\n" +
     "Name: " +
-    user.name +
+    interestedUser.name +
     "\n" +
     "Age: " +
-    user.age +
+    interestedUser.age +
     "\n" +
     "Education: " +
-    user.education +
+    interestedUser.education +
     "\n" +
     "Tele User: " +
-    username +
+    interestedUsername +
     "\n";
 
   // Add linkedin or github if exists
-  user.contacts.universal?.github &&
-    msg + "GitHub: " + user.contacts.universal.github + "\n";
-  user.contacts.universal?.linkedin &&
-    msg + "LinkedIn: " + user.contacts.universal.linkedin + "\n";
+  interestedUser.contacts.universal?.github &&
+    msg + "GitHub: " + interestedUser.contacts.universal.github + "\n";
+    interestedUser.contacts.universal?.linkedin &&
+    msg + "LinkedIn: " + interestedUser.contacts.universal.linkedin + "\n";
 
-  bot.api.sendMessage(owner, msg);
+  bot.api.sendMessage(projectOwnerId, msg);
 });
 
 // Start the bot.

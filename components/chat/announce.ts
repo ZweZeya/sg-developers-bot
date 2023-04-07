@@ -1,5 +1,6 @@
 import { InlineKeyboard } from "grammy";
 import { ProjectInfo, MyContext } from "../../global";
+import axios from "axios";
 
 const generateProjectMsg = (project: ProjectInfo): string => {
   const github = project.createdBy.contacts.universal?.github
@@ -10,6 +11,9 @@ const generateProjectMsg = (project: ProjectInfo): string => {
     : "NIL";
 
   let msg =
+    "ID: " +
+    project._id +
+    "\n" +
     "Name: " +
     project.name +
     "\n" +

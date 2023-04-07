@@ -48,6 +48,7 @@ interface UpdateInfo {
 }
 
 interface ProjectInfo {
+  _id: string;
   name: string;
   description: string;
   createdBy: UserInfo;
@@ -181,6 +182,14 @@ const getUser = async (telegramId: number) => {
     });
 };
 
+const getProjectById = async (id: string) => {
+  return await axios.get<ProjectInfo>("/api/project/" + id)
+    .then(res => {
+      return res.data
+    })
+    .catch(err => console.log(err))
+};
+
 export {
   MyContext,
   MyConversation,
@@ -190,4 +199,5 @@ export {
   ProjectValidator,
   getUser,
   ProjectInfo,
+  getProjectById,
 };

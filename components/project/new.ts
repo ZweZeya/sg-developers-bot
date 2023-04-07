@@ -54,7 +54,7 @@ const createProject = async (project: ProjectInfo, ctx: MyContext) => {
     await axios.post("/api/project", { project })
         .then(async (res) => {
             await ctx.reply("New project successfully created.");
-            await announceProject(project, ctx);         
+            await announceProject(res.data.project, ctx);         
         })
         .catch(err => {
             console.log(err)
